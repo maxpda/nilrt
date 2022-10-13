@@ -1,0 +1,38 @@
+name: Build NI-RT Image 
+on:
+  workflow_run:
+    workflows: 
+      - build_pyrex_image
+    types: [completed]
+
+jobs:
+  on-success:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - name: Tirgger Test 
+        run: |
+          echo 'The triggering workflow passed'
+          echo '# Build NI-RT Image' >> $GITHUB_STEP_SUMMARY
+          echo '## Tirggering Event' >> $GITHUB_STEP_SUMMARY
+          echo "```json"
+          echo " fromJSON( $ {{ github.event.workflow_run }} ) "  >> $GITHUB_STEP_SUMMARY
+          echo "```"
+
+      - name: Download artifact
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          workflow: ${{ github.event.workflow_run.workflow_id }}
+
+      - name: Mount Docker Image 
+        run: |
+          docker import ./action_image_artifact_build-nilrt_sumo/build-nilrt_sumo
+          docker images --all
+          docker image inspect build-nilrt
+
+
+  on-failure:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    steps:
+      - run: echo 'The triggering workflow failed'
