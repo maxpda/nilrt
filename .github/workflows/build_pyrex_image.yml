@@ -1,0 +1,39 @@
+name: build_pyrex_image
+
+on:
+  push:
+    branches: [ "nilrt/master/hardknott" ]
+  pull_request:
+    branches: [ "nilrt/master/hardknott" ]
+
+env:
+  BUILD_IMG_NAME: build-nilrt
+
+# This workflow is intended to build the build environment docker image that is required for subsequent steps
+# Subsequent steps of building images and feeds will be done in parallel triggered workflows. 
+
+jobs:
+  build-build-environment:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: recursive
+
+    - name: Get Codename #Add the codename to github env 
+      run: bash ./docker/parse-nirlt-codename.sh "nilrt_codename=" >> $GITHUB_ENV
+  
+    - name: Build Bitbake Container  #Yeah we could just pull the image but what fun is that 
+      run: |
+          bash ./docker/create-build-nilrt.sh ${{ github.head_ref }}
+
+    - name: Verify image has been created # Verify that the image has been created
+      run: docker images ${{ env.BUILD_IMG_NAME}}  
+
+    - name: Upload image
+      uses: ishworkh/docker-image-artifact-upload@v1
+      with:
+        image: "build-nilrt:${{ env.nilrt_codename }}"
+
+  
+
